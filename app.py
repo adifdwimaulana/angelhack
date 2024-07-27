@@ -117,16 +117,21 @@ def get_suggestions(history):
     chatTemplate = [
         SystemMessage('Generate 3 very brief follow-up questions that the user would likely ask next.'
                       'Enclose the follow-up questions in double angle brackets. Example:'
-                      '<<I want something spicy>>',
-                      '<<Is there something cheaper>>',
+                      '<<I want something spicy>>'
+                      '<<Is there something cheaper>>'
                       'Do no repeat questions that have already been asked.'
                       'Make sure the last question ends with ">>'
                       ),
-        HumanMessage(jsonify(history))
+        HumanMessage(json.dumps(history))
     ]
 
     response = llm.invoke(chatTemplate)
-    return response
+    # Split the response into individual suggestions
+    suggestions = response.content.split('<<')
+    suggestions = [suggestion.strip() for suggestion in suggestions if suggestion != '']
+    suggestions = [suggestion[:-2] for suggestion in suggestions if suggestion[-2:] == '>>']
+
+    return suggestions
 
 # Add tools for querying the data and order a product
 @app.route('/chat/<session_id>', methods=['POST'])
