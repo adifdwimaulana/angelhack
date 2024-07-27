@@ -1,3 +1,6 @@
 .env
 angelhack.product.json
 grabfood_dataset.csv
+.venv
+.idea
+.vscode

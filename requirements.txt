@@ -1,0 +1,9 @@
+openai
+flask
+python-dotenv
+pymongo
+bson
+langchain-openai
+langchain
+langchain-community
+langsmith

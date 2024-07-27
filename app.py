@@ -1,20 +1,22 @@
 # app.py
 import os
+import uuid
+
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from openai import OpenAI
 from pymongo import MongoClient, DESCENDING
 from bson.regex import Regex
 import os
-
-app = Flask(__name__)
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 load_dotenv()
 
+app = Flask(__name__)
+
 # Set your OpenAI API key here
-client = OpenAI(
-    api_key=os.getenv('OPENAI_API_KEY')
-)
+llm = ChatOpenAI(model="gpt-4o")
 
 # Mongo Config
 MONGO_URI = "mongodb://localhost:27017/"
@@ -22,16 +24,54 @@ client = MongoClient(MONGO_URI)
 db = client["angelhack"]
 products_collection = db["product"]
 
-def extract_parameters(messages):
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        max_tokens=256,
-        messages=messages
-    )
+sessionChat: dict[str, list] = {}
+sessionChatCounter: dict[str, int] = {}
 
-    # Still not working, do here
-    message = response.choices[0].message
-    return message
+
+@app.route('/chat', methods=['POST'])
+def create_chat_session():
+    session_id = str(uuid.uuid4())
+    sessionChat[session_id] = [
+        SystemMessage('You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
+                      'Help gather what kind of food they want to eat.')
+    ]
+
+    sessionChatCounter[session_id] = 0
+    return jsonify({'session_id': session_id})
+
+
+@app.route('/chat/<session_id>', methods=['POST'])
+def chat(session_id):
+    message = request.json.get('message', '')
+    if session_id not in sessionChat:
+        return jsonify({'error': 'Session not found'})
+    if message == '':
+        return jsonify({'error': 'Message cannot be empty'})
+
+    sessionChat[session_id].append(HumanMessage(message))
+
+    response = llm.invoke(sessionChat[session_id])
+
+    sessionChat[session_id].append(response)
+
+    return jsonify({'response': response.content})
+
+
+@app.route('/chat/<session_id>', methods=['GET'])
+def get_chat(session_id):
+    if session_id not in sessionChat:
+        return jsonify({'error': 'Session not found'})
+    dictionary = []
+    for message in sessionChat[session_id]:
+        if message.type == 'system':
+            continue  # Skip system messages
+        dictionary.append({
+            'type': message.type,
+            'content': message.content
+        })
+
+    return jsonify(dictionary)
+
 
 @app.route('/order/plan', methods=['POST'])
 def plan_order():
@@ -48,12 +88,14 @@ def plan_order():
     print(extracted_params_dict)
     return 'Filter'
 
+
 @app.route('/suggestion', methods=['GET'])
 def get_suggestion():
     prompt = request.json.get('prompt', '')
     extracted_params = extract_parameters(prompt)
 
     return 'Suggestion'
+
 
 # Test Read
 # @app.route('/products', methods=['GET'])
@@ -70,7 +112,7 @@ def get_suggestion():
 
 #     return get_products(params)
 
-def get_products(params = {}):
+def get_products(params={}):
     query = {}
 
     merchant_area = params['merchant_area']
@@ -110,5 +152,6 @@ def get_products(params = {}):
 
     return jsonify(result)
 
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=int(os.getenv('PORT', 8000)))
