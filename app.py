@@ -251,7 +251,7 @@ def get_products(params={}):
 
 if __name__ == '__main__':
     try:
-        app.run(debug=os.getenv('DEBUG', 'True') == 'True',
+        app.run(debug=os.getenv('DEBUG', 'False') == 'True',
                 port=int(os.getenv('PORT', 8000)),
                 threaded=False)
 
