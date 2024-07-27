@@ -18,8 +18,6 @@ app = Flask(__name__)
 # Set your OpenAI API key here
 llm = ChatOpenAI(model="gpt-4o")
 
-
-
 # Mongo Config
 MONGO_URI = "mongodb://localhost:27017/"
 client = MongoClient(MONGO_URI)
@@ -66,7 +64,7 @@ def get_chat(session_id):
     dictionary = []
     for message in sessionChat[session_id]:
         if message.type == 'system':
-            continue # Skip system messages
+            continue  # Skip system messages
         dictionary.append({
             'type': message.type,
             'content': message.content
