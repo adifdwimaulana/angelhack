@@ -79,24 +79,6 @@ def get_chat(session_id):
     return jsonify(sessionChat[session_id])
 
 
-def extract_parameters(messages):
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=sessionChat[session_id],
-        temperature=0.6,
-        max_tokens=256,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-
-    sessionChat[session_id].append({
-        'role': 'assistant',
-        'content': response.choices[0].message.content
-    })
-
-    return jsonify({'response': response.choices[0].message.content})
-
 
 @app.route('/chat/<session_id>', methods=['GET'])
 def get_chat(session_id):
