@@ -5,6 +5,7 @@ import asyncio
 PORT = os.getenv("PORT", 8000)
 BASE_URL = f"http://localhost:{PORT}"
 
+
 async def test_chat_basic():
     session = aiohttp.ClientSession()
 
@@ -22,22 +23,15 @@ async def test_chat_basic():
     sessionGetResponse = await sessionGetResponse.json()
     assert sessionGetResponse == []
 
-
     # POST /chat/{sessionId}
     sessionPostResponse = await session.post(f"{BASE_URL}/chat/{sessionId}", json={"message": "Hello!"})
     assert sessionPostResponse.status == 200
     sessionPostResponse = await sessionPostResponse.json()
     print(sessionPostResponse)
 
-
     # Be responsible and close the session
     await session.close()
 
 
-
-
-
-
 if __name__ == "__main__":
     asyncio.run(test_chat_basic())
-    
