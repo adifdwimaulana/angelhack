@@ -8,15 +8,17 @@ from openai import OpenAI
 from pymongo import MongoClient, DESCENDING
 from bson.regex import Regex
 import os
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 load_dotenv()
 
 app = Flask(__name__)
 
 # Set your OpenAI API key here
-client = OpenAI(
-    api_key=os.getenv('OPENAI_API_KEY')
-)
+llm = ChatOpenAI(model="gpt-4o")
+
+
 
 # Mongo Config
 MONGO_URI = "mongodb://localhost:27017/"
@@ -32,11 +34,8 @@ sessionChatCounter: dict[str, int] = {}
 def create_chat_session():
     session_id = str(uuid.uuid4())
     sessionChat[session_id] = [
-        {
-            'role': 'system',
-            'content': 'You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
-                       'Help gather what kind of food they want to eat.'
-        }
+        SystemMessage('You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
+                      'Help gather what kind of food they want to eat.')
     ]
 
     sessionChatCounter[session_id] = 0
@@ -51,42 +50,29 @@ def chat(session_id):
     if message == '':
         return jsonify({'error': 'Message cannot be empty'})
 
-    sessionChat[session_id].append({
-        'role': 'human',
-        'content': message
-    })
-    sessionChatCounter[session_id] += len(message.split())  # Crude word counter
-    if sessionChatCounter[session_id] > 1000:
-        # Remove the oldest message that is not system message
-        for i in range(len(sessionChat[session_id])):
-            if sessionChat[session_id][i]['role'] != 'system':
-                sessionChat[session_id].pop(i)
-                break
+    sessionChat[session_id].append(HumanMessage(message))
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=sessionChat[session_id],
-        temperature=0.6,
-        max_tokens=256,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
+    response = llm.invoke(sessionChat[session_id])
 
-    )
+    sessionChat[session_id].append(response)
 
-    sessionChat[session_id].append({
-        'role': 'assistant',
-        'content': response.choices[0].message.content
-    })
-
-    return jsonify({'response': response.choices[0].message.content})
+    return jsonify({'response': response.content})
 
 
 @app.route('/chat/<session_id>', methods=['GET'])
 def get_chat(session_id):
     if session_id not in sessionChat:
         return jsonify({'error': 'Session not found'})
-    return jsonify(sessionChat[session_id])
+    dictionary = []
+    for message in sessionChat[session_id]:
+        if message.type == 'system':
+            continue # Skip system messages
+        dictionary.append({
+            'type': message.type,
+            'content': message.content
+        })
+
+    return jsonify(dictionary)
 
 
 @app.route('/order/plan', methods=['POST'])
