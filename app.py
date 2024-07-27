@@ -30,7 +30,7 @@ sessionChatCounter: dict[str, int] = {}
 
 @app.route('/chat', methods=['POST'])
 def create_chat_session():
-    session_id = uuid.uuid4().hex
+    session_id = str(uuid.uuid4())
     sessionChat[session_id] = [
         {
             'role': 'system',
@@ -71,26 +71,7 @@ def chat(session_id):
         top_p=1,
         frequency_penalty=0,
         presence_penalty=0,
-        tools={
-            "name": "search",
-            "description": "Search for food",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "category": {
-                        "type": "string",
-                        "description": "Category of food e.g 'fast food', 'chinese', 'indian'"
-                    },
-                    "name": {
-                        "type": "string",
-                        "description": "Name of the food"
-                    },
-                },
-                "required": [
-                    "category",
-                ]
-            }
-        }
+
     )
 
     sessionChat[session_id].append({
