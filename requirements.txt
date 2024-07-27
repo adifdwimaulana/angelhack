@@ -7,3 +7,4 @@ langchain-openai
 langchain
 langchain-community
 langsmith
+aiohttp
