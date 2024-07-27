@@ -3,10 +3,10 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from openai import OpenAI
+load_dotenv()
 
 app = Flask(__name__)
 
-load_dotenv()
 
 # Set your OpenAI API key here
 client = OpenAI(
@@ -47,4 +47,4 @@ def get_suggestion():
     return 'Suggestion'
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=int(os.getenv('PORT', 8000)))
