@@ -208,7 +208,7 @@ def get_chat(session_id):
 
 ### Okay you good
 
-@app.route('/order/plan', methods=['POST'])
+@app.route('/order/plan', methods=['GET'])
 def plan_order():
     message = request.json.get('message', '')
     extracted_params = extract_parameters(message)
@@ -216,12 +216,7 @@ def plan_order():
     if not extracted_params:
         return jsonify({'error': 'Error extracting parameters'}), 500
     
-    print(extracted_params.dict())
-    
     product_results = query_products(extracted_params.dict())  # Convert Pydantic model to dictionary
-
-    print("products", product_results)
-
     return jsonify(product_results)
 
 
