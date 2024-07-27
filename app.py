@@ -25,7 +25,7 @@ db = client["angelhack"]
 products_collection = db["product"]
 
 sessionChat: dict[str, list] = {}
-
+sessionChatCounter: dict[str, int] = {}
 
 @app.route('/chat', methods=['POST'])
 def create_chat_session():
@@ -33,9 +33,12 @@ def create_chat_session():
     sessionChat[session_id] = [
         {
             'role': 'system',
-            'content': 'You are assistant to help customer choose the food they want to eat and avoid indecisiveness.'
+            'content': 'You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
+                       'Help gather what kind of food they want to eat.'
         }
     ]
+
+    sessionChatCounter[session_id] = 0
     return jsonify({'session_id': session_id})
 
 
@@ -51,6 +54,13 @@ def chat(session_id):
         'role': 'human',
         'content': message
     })
+    sessionChatCounter[session_id] += len(message.split()) # Crude word counter
+    if sessionChatCounter[session_id] > 1000:
+        # Remove the oldest message that is not system message
+        for i in range(len(sessionChat[session_id])):
+            if sessionChat[session_id][i]['role'] != 'system':
+                sessionChat[session_id].pop(i)
+                break
 
     response = client.chat.completions.create(
         model="gpt-4o",
