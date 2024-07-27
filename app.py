@@ -210,17 +210,19 @@ def get_chat(session_id):
 
 @app.route('/order/plan', methods=['POST'])
 def plan_order():
-    messages = request.json.get('messages', '')
-    extracted_params = extract_parameters(messages)
+    message = request.json.get('message', '')
+    extracted_params = extract_parameters(message)
 
     if not extracted_params:
         return jsonify({'error': 'Error extracting parameters'}), 500
+    
+    print(extracted_params.dict())
+    
+    product_results = query_products(extracted_params.dict())  # Convert Pydantic model to dictionary
 
-    # product_results = query_products(extracted_params.dict())  # Convert Pydantic model to dictionary
+    print("products", product_results)
 
-    print("Product", extracted_params)
-
-    return jsonify({"data": 123})
+    return jsonify(product_results)
 
 
 @app.route('/suggestion', methods=['GET'])
@@ -230,61 +232,34 @@ def get_suggestion():
 
     return 'Suggestion'
 
-
-# Test Read
-# @app.route('/products', methods=['GET'])
-# def call_products():
-#     params = {}
-#     params['merchant_area'] = request.args.get('merchant_area')
-#     params['merchant_name'] = request.args.get('merchant_name')
-#     params['min_price'] = request.args.get('min_price')
-#     params['max_price'] = request.args.get('max_price')
-#     params['category'] = request.args.getlist('category')
-#     params['product_name'] = request.args.get('product_name')
-#     params['description'] = request.args.get('description')
-#     params['product'] = request.args.get('product')
-
-#     return get_products(params)
-
-def get_products(params={}):
+def query_products(extracted_params: dict):
     query = {}
 
-    merchant_area = params['merchant_area']
-    if merchant_area:
-        query['merchant_area'] = {'$regex': merchant_area, '$options': 'i'}
+    for product in extracted_params["product"]:
+        if product['min_price'] is not None:
+            query['price'] = {'$gte': product['min_price']}
+        if product['max_price'] is not None:
+            query.setdefault('price', {}).update({'$lte': product['max_price']})
+        # if product['category']:
+        #     query['category'] = {'$in': product['category']}
+        if product['product_name']:
+            query['product'] = {'$regex': product['product_name'], '$options': 'i'}
+        # if product['merchant_name']:
+        #     query['merchant_name'] = {'$regex': product['merchant_name'], '$options': 'i'}
+        # if product['merchant_area']:
+        #     query['merchant_area'] = {'$regex': product['merchant_area'], '$options': 'i'}
 
-    merchant_name = params['merchant_name']
-    if merchant_name:
-        query['merchant_name'] = {'$regex': merchant_name, '$options': 'i'}
-
-    min_price = params['min_price']
-    max_price = params['max_price']
-    if min_price and max_price:
-        query['price'] = {'$gte': int(min_price), '$lte': int(max_price)}
-    elif min_price:
-        query['price'] = {'$gte': int(min_price)}
-    elif max_price:
-        query['price'] = {'$lte': int(max_price)}
-
-    category = params['category']
-    if category:
-        query['category'] = {'$in': category}
-
-    product_name = params['product_name']
-    if product_name:
-        query['product'] = {'$regex': product_name, '$options': 'i'}
-
-    description = params['description']
-    if description:
-        query['description'] = {'$regex': description, '$options': 'i'}
-
-    products = products_collection.find(query).limit(50).sort('rating', DESCENDING)
-    result = []
-    for product in products:
-        product['_id'] = str(product['_id'])  # Convert ObjectId to string
-        result.append(product)
-
-    return jsonify(result)
+    try:
+        products = products_collection.find(query).limit(10).sort('rating', DESCENDING)
+        result = []
+        for product in products:
+            product['_id'] = str(product['_id'])  # Convert ObjectId to string
+            # result.append(Product(**product))  # Create a Product instance
+            result.append(product)
+        return result
+    except Exception as e:
+        print(f"Error querying products: {e}")
+        return []
 
 
 if __name__ == '__main__':

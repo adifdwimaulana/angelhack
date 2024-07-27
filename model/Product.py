@@ -15,13 +15,13 @@ class Product(BaseModel):
     # 1. Each field is an `optional` -- this allows the model to decline to extract it!
     # 2. Each field has a `description` -- this description is used by the LLM.
     # Having a good description can help improve extraction results.
-    product_name: Optional[str] = Field(..., description="The name of the food")
-    # merchant_area: Optional[str] = Field(..., description="The location merchant")
-    merchant_name: Optional[str] = Field(..., description="The name of the merchant")
-    category: Optional[List[str]] = Field(..., description="The category of the food")
-    # description: Optional[str] = Field(..., description="The description of the food")
-    min_price: Optional[int] = Field(..., description="Min price in rupiah")
-    max_price: Optional[int] = Field(..., description="Max price in rupiah")
+    """Information about a product."""
+    product_name: Optional[str] = Field(None, description="The name of the food")
+    merchant_name: Optional[str] = Field(None, description="The name of the merchant")
+    merchant_area: Optional[str] = Field(None, description="The location merchant")
+    category: Optional[List[str]] = Field(None, description="The category of the food")
+    min_price: Optional[int] = Field(None, description="Min price in rupiah")
+    max_price: Optional[int] = Field(None, description="Max price in rupiah")
 
 
 class Data(BaseModel):
