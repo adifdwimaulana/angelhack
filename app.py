@@ -176,6 +176,7 @@ def get_chat(session_id):
 
     return jsonify(dictionary)
 
+### Okay you good
 
 @app.route('/order/plan', methods=['POST'])
 def plan_order():
