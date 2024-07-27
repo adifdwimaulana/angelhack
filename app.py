@@ -55,22 +55,20 @@ def serialize_session_chat(session_id):
 
 def get_suggestions(history):
     chatTemplate = [
-        ("system", 'Generate 3 very brief follow-up questions that the user would likely ask next.'
-                   'Enclose the follow-up questions in double angle brackets. Example:'
-        '<<I want something spicy>>',
-         '<<Is there something cheaper>>',
-         'Do no repeat questions that have already been asked.'
-         'Make sure the last question ends with ">>'
-         ),
-        ("user", jsonify(history))
+        SystemMessage('Generate 3 very brief follow-up questions that the user would likely ask next.'
+                      'Enclose the follow-up questions in double angle brackets. Example:'
+                      '<<I want something spicy>>',
+                      '<<Is there something cheaper>>',
+                      'Do no repeat questions that have already been asked.'
+                      'Make sure the last question ends with ">>'
+                      ),
+        HumanMessage(jsonify(history))
     ]
 
     response = llm.invoke(chatTemplate)
     return response
 
-
-
-
+# Add tools for querying the data and order a product
 @app.route('/chat/<session_id>', methods=['POST'])
 def chat(session_id):
     message = request.json.get('message', '')
