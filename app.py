@@ -24,7 +24,6 @@ client = MongoClient(MONGO_URI)
 db = client["angelhack"]
 products_collection = db["product"]
 
-
 sessionChat: dict[str, list] = {}
 
 
@@ -38,7 +37,6 @@ def create_chat_session():
         }
     ]
     return jsonify({'session_id': session_id})
-
 
 
 @app.route('/chat/<session_id>', methods=['POST'])
@@ -80,13 +78,6 @@ def get_chat(session_id):
 
 
 
-@app.route('/chat/<session_id>', methods=['GET'])
-def get_chat(session_id):
-    if session_id not in sessionChat:
-        return jsonify({'error': 'Session not found'})
-    return jsonify(sessionChat[session_id])
-
-
 @app.route('/order/plan', methods=['POST'])
 def plan_order():
     messages = request.json.get('messages', '')
@@ -110,6 +101,7 @@ def get_suggestion():
 
     return 'Suggestion'
 
+
 # Test Read
 # @app.route('/products', methods=['GET'])
 # def call_products():
@@ -125,7 +117,7 @@ def get_suggestion():
 
 #     return get_products(params)
 
-def get_products(params = {}):
+def get_products(params={}):
     query = {}
 
     merchant_area = params['merchant_area']
@@ -164,6 +156,7 @@ def get_products(params = {}):
         result.append(product)
 
     return jsonify(result)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=int(os.getenv('PORT', 8000)))
