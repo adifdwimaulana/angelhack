@@ -1,4 +1,5 @@
 # app.py
+import json
 import os
 import uuid
 
@@ -118,16 +119,21 @@ def get_suggestions(history):
     chatTemplate = [
         SystemMessage('Generate 3 very brief follow-up questions that the user would likely ask next.'
                       'Enclose the follow-up questions in double angle brackets. Example:'
-                      '<<I want something spicy>>',
-                      '<<Is there something cheaper>>',
+                      '<<I want something spicy>>'
+                      '<<Is there something cheaper>>'
                       'Do no repeat questions that have already been asked.'
                       'Make sure the last question ends with ">>'
                       ),
-        HumanMessage(jsonify(history))
+        HumanMessage(json.dumps(history))
     ]
 
     response = llm.invoke(chatTemplate)
-    return response
+    # Split the response into individual suggestions
+    suggestions = response.content.split('<<')
+    suggestions = [suggestion.strip() for suggestion in suggestions if suggestion != '']
+    suggestions = [suggestion[:-2] for suggestion in suggestions if suggestion[-2:] == '>>']
+
+    return suggestions
 
 # Add tools for querying the data and order a product
 @app.route('/chat/<session_id>', methods=['POST'])
@@ -146,8 +152,13 @@ def chat(session_id):
 
     # Get suggestions
     serialized_chat = serialize_session_chat(session_id)
+    suggestions = get_suggestions(serialized_chat)
 
-    return jsonify({'response': response.content})
+
+    return jsonify({
+        'response': response.content,
+        'suggestions': suggestions
+    })
 
 
 @app.route('/chat/<session_id>', methods=['GET'])
@@ -247,6 +258,7 @@ def get_products(params={}):
 
 if __name__ == '__main__':
     try:
-        app.run(debug=True, port=int(os.getenv('PORT', 8000)))
+        app.run(debug=os.getenv('DEBUG', 'True') == 'True'
+                , port=int(os.getenv('PORT', 8000)))
     except Exception as e:
         print(f"Error running the server: {e}")
