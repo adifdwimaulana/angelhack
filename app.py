@@ -5,11 +5,10 @@ import uuid
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
-from pymongo import MongoClient, DESCENDING
-import os
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
+from pymongo import MongoClient, DESCENDING
 
 from model.Product import Data, Product
 from tools import tool_example_to_messages
@@ -52,6 +51,7 @@ runnable = prompt | llm.with_structured_output(
     include_raw=False,
 )
 
+
 def init_prompt_examples():
     examples = [
         (
@@ -60,18 +60,22 @@ def init_prompt_examples():
         ),
         (
             "Create me a coffee planner for the next 5 days in the morning with price range 30000-70000",
-            Data(product=[Product(product_name="Coffee", description="Coffee", min_price=30000, max_price=70000, category=["drink", "coffee"], merchant_name=None)]),
+            Data(product=[Product(product_name="Coffee", description="Coffee", min_price=30000, max_price=70000,
+                                  category=["drink", "coffee"], merchant_name=None)]),
         ),
         (
             "I want seafood under 100000",
-            Data(product=[Product(product_name=None, description="Seafood", min_price=None, max_price=100000, category=["food"], merchant_name=None)]),
+            Data(product=[
+                Product(product_name=None, description="Seafood", min_price=None, max_price=100000, category=["food"],
+                        merchant_name=None)]),
         ),
         (
             "I want a KFC menu under 100000",
-            Data(product=[Product(product_name=None, description="Chicken", min_price=None, max_price=100000, category=["food"], merchant_name="KFC")]),
+            Data(product=[
+                Product(product_name=None, description="Chicken", min_price=None, max_price=100000, category=["food"],
+                        merchant_name="KFC")]),
         ),
     ]
-
 
     messages = []
 
@@ -79,7 +83,7 @@ def init_prompt_examples():
         messages.extend(
             tool_example_to_messages({"input": text, "tool_calls": [tool_call]})
         )
-    
+
     return messages
 
 
@@ -88,14 +92,35 @@ def extract_parameters(prompt):
     product = runnable.invoke({"text": prompt, "examples": messages})
     return product
 
+
 ### DON'T TOUCH, ITS GOOD (maybe)
+language = "Bahasa Indonesia"
+cache_bros = {}
+
+
+def translate_to_language(text):
+    if text in cache_bros:
+        return cache_bros[text]
+    template = [
+        SystemMessage('Translate the following text to ' + language + ' translate this don\'t interpret it'),
+        HumanMessage(text)
+    ]
+    response = llm.invoke(template)
+    cache_bros[text] = response.content
+    return response.content
+
 
 @app.route('/chat', methods=['POST'])
 def create_chat_session():
     session_id = str(uuid.uuid4())
+
     sessionChat[session_id] = [
-        SystemMessage('You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
-                      'Help gather what kind of food they want to eat.')
+        SystemMessage(
+            'You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
+            'Help gather what kind of food they want to eat.'
+            'Say "Hello what you want to eat" at the beginning of the conversation.'
+            'User Language: ' + language
+        )
     ]
 
     sessionChatCounter[session_id] = 0
@@ -117,13 +142,16 @@ def serialize_session_chat(session_id):
 
 def get_suggestions(history):
     chatTemplate = [
-        SystemMessage('Generate 3 very brief follow-up questions that the user would likely ask next.'
-                      'Enclose the follow-up questions in double angle brackets. Example:'
-                      '<<I want something spicy>>'
-                      '<<Is there something cheaper>>'
-                      'Do no repeat questions that have already been asked.'
-                      'Make sure the last question ends with ">>'
-                      ),
+        SystemMessage(
+
+            'Generate 3 very brief follow-up questions that the user would likely ask next.'
+            'Enclose the follow-up questions in double angle brackets. Example:'
+            '<<I want something spicy>>'
+            '<<Is there something cheaper>>'
+            'Do no repeat questions that have already been asked.'
+            'Make sure the last question ends with ">>'
+            'User Language: ' + language
+        ),
         HumanMessage(json.dumps(history))
     ]
 
@@ -135,6 +163,7 @@ def get_suggestions(history):
 
     return suggestions
 
+
 # Add tools for querying the data and order a product
 @app.route('/chat/<session_id>', methods=['POST'])
 def chat(session_id):
@@ -142,9 +171,10 @@ def chat(session_id):
     if session_id not in sessionChat:
         return jsonify({'error': 'Session not found'})
     if message == '':
-        return jsonify({'error': 'Message cannot be empty'})
-
-    sessionChat[session_id].append(HumanMessage(message))
+        # We don't add empty messages
+       pass
+    else:
+        sessionChat[session_id].append(HumanMessage(message))
 
     response = llm.invoke(sessionChat[session_id])
 
@@ -153,7 +183,6 @@ def chat(session_id):
     # Get suggestions
     serialized_chat = serialize_session_chat(session_id)
     suggestions = get_suggestions(serialized_chat)
-
 
     return jsonify({
         'response': response.content,
@@ -176,6 +205,7 @@ def get_chat(session_id):
 
     return jsonify(dictionary)
 
+
 ### Okay you good
 
 @app.route('/order/plan', methods=['POST'])
@@ -185,7 +215,7 @@ def plan_order():
 
     if not extracted_params:
         return jsonify({'error': 'Error extracting parameters'}), 500
-    
+
     # product_results = query_products(extracted_params.dict())  # Convert Pydantic model to dictionary
 
     print("Product", extracted_params)

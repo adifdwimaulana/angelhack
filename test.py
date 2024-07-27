@@ -25,7 +25,13 @@ async def test_chat_basic():
     assert sessionGetResponse == []
 
     # POST /chat/{sessionId}
-    sessionPostResponse = await session.post(f"{BASE_URL}/chat/{sessionId}", json={"message": "Hello!"})
+    sessionPostResponse = await session.post(f"{BASE_URL}/chat/{sessionId}", json={"message": ""})
+    assert sessionPostResponse.status == 200
+    sessionPostResponse = await sessionPostResponse.json()
+    print(sessionPostResponse)
+
+    # POST /chat/{sessionId}
+    sessionPostResponse = await session.post(f"{BASE_URL}/chat/{sessionId}", json={"message": "Yang manis"})
     assert sessionPostResponse.status == 200
     sessionPostResponse = await sessionPostResponse.json()
     print(sessionPostResponse)
