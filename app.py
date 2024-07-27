@@ -88,6 +88,8 @@ def extract_parameters(prompt):
     product = runnable.invoke({"text": prompt, "examples": messages})
     return product
 
+### DON'T TOUCH, ITS GOOD (maybe)
+
 @app.route('/chat', methods=['POST'])
 def create_chat_session():
     session_id = str(uuid.uuid4())
