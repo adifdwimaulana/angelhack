@@ -30,6 +30,9 @@ async def test_chat_basic():
     print(sessionPostResponse)
 
 
+    # Be responsible and close the session
+    await session.close()
+
 
 
 
