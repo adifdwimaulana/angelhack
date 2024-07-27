@@ -27,6 +27,7 @@ products_collection = db["product"]
 sessionChat: dict[str, list] = {}
 sessionChatCounter: dict[str, int] = {}
 
+
 @app.route('/chat', methods=['POST'])
 def create_chat_session():
     session_id = uuid.uuid4().hex
@@ -54,7 +55,7 @@ def chat(session_id):
         'role': 'human',
         'content': message
     })
-    sessionChatCounter[session_id] += len(message.split()) # Crude word counter
+    sessionChatCounter[session_id] += len(message.split())  # Crude word counter
     if sessionChatCounter[session_id] > 1000:
         # Remove the oldest message that is not system message
         for i in range(len(sessionChat[session_id])):
@@ -69,7 +70,27 @@ def chat(session_id):
         max_tokens=256,
         top_p=1,
         frequency_penalty=0,
-        presence_penalty=0
+        presence_penalty=0,
+        tools={
+            "name": "search",
+            "description": "Search for food",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Category of food e.g 'fast food', 'chinese', 'indian'"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the food"
+                    },
+                },
+                "required": [
+                    "category",
+                ]
+            }
+        }
     )
 
     sessionChat[session_id].append({
@@ -85,7 +106,6 @@ def get_chat(session_id):
     if session_id not in sessionChat:
         return jsonify({'error': 'Session not found'})
     return jsonify(sessionChat[session_id])
-
 
 
 @app.route('/order/plan', methods=['POST'])
