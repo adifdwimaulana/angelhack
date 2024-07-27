@@ -3,25 +3,22 @@ import uuid
 import random
 from pymongo import MongoClient
 import re
+import ast
 
 # Load the dataset from the CSV file
 file_path = './grabfood_dataset.csv'  # Update with the correct path to your CSV file
 df = pd.read_csv(file_path)
 
+# Fill NaN values in the description column with an empty string
+df['description'].fillna('', inplace=True)
+
+# Fill NaN values in the pictures column with an empty list (as a string representation)
+df['pictures'].fillna('[]', inplace=True)
+
+# Define the merchant map dictionary
 merchant_map = {}
 
-# Function to generate random UUID
-def generate_uuid():
-    return str(uuid.uuid4())
-
-# Function to generate random rating between 3.0 and 5.0 with a step of 0.1
-def generate_random_rating():
-    return round(random.uniform(3.0, 5.0), 1)
-
-# Function to generate random review count between 10 and 2000
-def generate_random_review_count():
-    return random.randint(10, 2000)
-
+# Function to generate a unique UUID for each merchant name
 def generate_merchant_uuid(merchant_name):
     if merchant_name in merchant_map:
         return merchant_map[merchant_name]
@@ -30,6 +27,17 @@ def generate_merchant_uuid(merchant_name):
     merchant_map[merchant_name] = merchant_id
     return merchant_id
 
+# Function to generate random UUID
+def generate_uuid():
+    return str(uuid.uuid4())
+
+# Function to generate random rating between 3.0 and 5.0 with a step of 0.1
+def generate_random_rating():
+    return round(random.uniform(3.0, 5.0), 3)
+
+# Function to generate random review count between 10 and 2000
+def generate_random_review_count():
+    return random.randint(10, 2000)
 
 # Values to check in the category column
 directional_values = ['Barat', 'Timur', 'Tengah', 'Utara', 'Selatan', 'Pusat']
@@ -54,6 +62,9 @@ def update_merchant_area_category(row):
 
 # Apply the update function to each row
 df = df.apply(update_merchant_area_category, axis=1)
+
+# Convert the pictures column from a string representation of a list to an actual list
+df['pictures'] = df['pictures'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
 # Apply the merchant UUID generation function to each row
 df['merchant_id'] = df['merchant_name'].apply(generate_merchant_uuid)
 # Apply the functions to the dataset
