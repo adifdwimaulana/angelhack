@@ -92,7 +92,9 @@ def create_chat_session():
     session_id = str(uuid.uuid4())
     sessionChat[session_id] = [
         SystemMessage('You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
-                      'Help gather what kind of food they want to eat.')
+                      'Help gather what kind of food they want to eat.'
+                      'User language is Bahasa Indonesia.'
+                      )
     ]
 
     sessionChatCounter[session_id] = 0
