@@ -40,6 +40,31 @@ def create_chat_session():
     return jsonify({'session_id': session_id})
 
 
+def serialize_session_chat(session_id):
+    dictionary = []
+    for message in sessionChat[session_id]:
+        if message.type == 'system':
+            continue  # Skip system messages
+        dictionary.append({
+            'type': message.type,
+            'content': message.content
+        })
+
+    return dictionary
+
+
+def get_suggestions():
+    chatTemplate = [
+        ("system", 'Generate 3 very brief follow-up questions that the user would likely ask next.'
+                   'Enclose the follow-up questions in double angle brackets. Example:'
+                   '<<I want something spicy>>',
+         '<<Is there something cheaper',
+         'Do no repeat questions that have already been asked.'
+         'Make sure the last question ends with ">>'
+         )
+    ]
+
+
 @app.route('/chat/<session_id>', methods=['POST'])
 def chat(session_id):
     message = request.json.get('message', '')
@@ -53,6 +78,9 @@ def chat(session_id):
     response = llm.invoke(sessionChat[session_id])
 
     sessionChat[session_id].append(response)
+
+    # Get suggestions
+    serialized_chat = serialize_session_chat(session_id)
 
     return jsonify({'response': response.content})
 
