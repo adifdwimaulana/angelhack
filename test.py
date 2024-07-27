@@ -1,7 +1,8 @@
 import os
 import aiohttp
 import asyncio
-
+import dotenv
+dotenv.load_dotenv()
 PORT = os.getenv("PORT", 8000)
 BASE_URL = f"http://localhost:{PORT}"
 
