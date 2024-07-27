@@ -64,11 +64,11 @@ def init_prompt_examples():
         ),
         (
             "I want seafood under 100000",
-            Data(product=[Product(product_name="Seafood", description="Seafood", min_price=None, max_price=100000, category=["food"], merchant_name=None)]),
+            Data(product=[Product(product_name=None, description="Seafood", min_price=None, max_price=100000, category=["food"], merchant_name=None)]),
         ),
         (
             "I want a KFC menu under 100000",
-            Data(product=[Product(product_name="Chicken", description="Chicken", min_price=None, max_price=100000, category=["food"], merchant_name="KFC")]),
+            Data(product=[Product(product_name=None, description="Chicken", min_price=None, max_price=100000, category=["food"], merchant_name="KFC")]),
         ),
     ]
 
@@ -93,9 +93,7 @@ def create_chat_session():
     session_id = str(uuid.uuid4())
     sessionChat[session_id] = [
         SystemMessage('You are assistant to help customer choose the food they want to eat and avoid indecisiveness. '
-                      'Help gather what kind of food they want to eat.'
-                      'User language is Bahasa Indonesia.'
-                      )
+                      'Help gather what kind of food they want to eat.')
     ]
 
     sessionChatCounter[session_id] = 0
@@ -119,21 +117,16 @@ def get_suggestions(history):
     chatTemplate = [
         SystemMessage('Generate 3 very brief follow-up questions that the user would likely ask next.'
                       'Enclose the follow-up questions in double angle brackets. Example:'
-                      '<<I want something spicy>>'
-                      '<<Is there something cheaper>>'
+                      '<<I want something spicy>>',
+                      '<<Is there something cheaper>>',
                       'Do no repeat questions that have already been asked.'
                       'Make sure the last question ends with ">>'
                       ),
-        HumanMessage(json.dumps(history))
+        HumanMessage(jsonify(history))
     ]
 
     response = llm.invoke(chatTemplate)
-    # Split the response into individual suggestions
-    suggestions = response.content.split('<<')
-    suggestions = [suggestion.strip() for suggestion in suggestions if suggestion != '']
-    suggestions = [suggestion[:-2] for suggestion in suggestions if suggestion[-2:] == '>>']
-
-    return suggestions
+    return response
 
 # Add tools for querying the data and order a product
 @app.route('/chat/<session_id>', methods=['POST'])
@@ -258,7 +251,9 @@ def get_products(params={}):
 
 if __name__ == '__main__':
     try:
-        app.run(debug=os.getenv('DEBUG', 'True') == 'True'
-                , port=int(os.getenv('PORT', 8000)))
+        app.run(debug=os.getenv('DEBUG', 'True') == 'True',
+                port=int(os.getenv('PORT', 8000)),
+                threaded=False)
+
     except Exception as e:
         print(f"Error running the server: {e}")
