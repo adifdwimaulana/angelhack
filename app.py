@@ -4,12 +4,14 @@ import uuid
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
-from openai import OpenAI
 from pymongo import MongoClient, DESCENDING
-from bson.regex import Regex
 import os
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+from model.Product import Data, Product
+from tools import tool_example_to_messages
 
 load_dotenv()
 
@@ -27,6 +29,63 @@ products_collection = db["product"]
 sessionChat: dict[str, list] = {}
 sessionChatCounter: dict[str, int] = {}
 
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are an expert extraction algorithm. "
+            "Only extract relevant information from the text. "
+            "If you do not know the value of an attribute asked "
+            "to extract, return null for the attribute's value.",
+        ),
+        # ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+        MessagesPlaceholder("examples"),  # <-- EXAMPLES!
+        # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+        ("human", "{text}"),
+    ]
+)
+
+runnable = prompt | llm.with_structured_output(
+    schema=Data,
+    method="function_calling",
+    include_raw=False,
+)
+
+def init_prompt_examples():
+    examples = [
+        (
+            "Mike Tyson is so strong",
+            Data(product=[]),
+        ),
+        (
+            "Create me a coffee planner for the next 5 days in the morning with price range 30000-70000",
+            Data(product=[Product(product_name="Coffee", description="Coffee", min_price=30000, max_price=70000, category=["drink", "coffee"], merchant_name=None)]),
+        ),
+        (
+            "I want seafood under 100000",
+            Data(product=[Product(product_name="Seafood", description="Seafood", min_price=None, max_price=100000, category=["food"], merchant_name=None)]),
+        ),
+        (
+            "I want a KFC menu under 100000",
+            Data(product=[Product(product_name="Chicken", description="Chicken", min_price=None, max_price=100000, category=["food"], merchant_name="KFC")]),
+        ),
+    ]
+
+
+    messages = []
+
+    for text, tool_call in examples:
+        messages.extend(
+            tool_example_to_messages({"input": text, "tool_calls": [tool_call]})
+        )
+    
+    return messages
+
+
+def extract_parameters(prompt):
+    messages = init_prompt_examples()
+    product = runnable.invoke({"text": prompt, "examples": messages})
+    return product
 
 @app.route('/chat', methods=['POST'])
 def create_chat_session():
@@ -110,21 +169,20 @@ def plan_order():
     messages = request.json.get('messages', '')
     extracted_params = extract_parameters(messages)
 
-    # Example: Let's assume the extracted parameters are in the form of a dictionary-like string
-    # Convert extracted parameters string to dictionary
-    extracted_params_dict = eval(extracted_params)
+    if not extracted_params:
+        return jsonify({'error': 'Error extracting parameters'}), 500
+    
+    # product_results = query_products(extracted_params.dict())  # Convert Pydantic model to dictionary
 
-    # filtered_data = [item for item in data if all(item.get(k) == v for k, v in extracted_params_dict.items())]
-    # return jsonify(filtered_data)
+    print("Product", extracted_params)
 
-    print(extracted_params_dict)
-    return 'Filter'
+    return jsonify({"data": 123})
 
 
 @app.route('/suggestion', methods=['GET'])
 def get_suggestion():
     prompt = request.json.get('prompt', '')
-    extracted_params = extract_parameters(prompt)
+    extract_parameters(prompt)
 
     return 'Suggestion'
 
@@ -186,4 +244,7 @@ def get_products(params={}):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=int(os.getenv('PORT', 8000)))
+    try:
+        app.run(debug=True, port=int(os.getenv('PORT', 8000)))
+    except Exception as e:
+        print(f"Error running the server: {e}")
