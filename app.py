@@ -63,11 +63,11 @@ def init_prompt_examples():
         ),
         (
             "I want seafood under 100000",
-            Data(product=[Product(product_name="Seafood", description="Seafood", min_price=None, max_price=100000, category=["food"], merchant_name=None)]),
+            Data(product=[Product(product_name=None, description="Seafood", min_price=None, max_price=100000, category=["food"], merchant_name=None)]),
         ),
         (
             "I want a KFC menu under 100000",
-            Data(product=[Product(product_name="Chicken", description="Chicken", min_price=None, max_price=100000, category=["food"], merchant_name="KFC")]),
+            Data(product=[Product(product_name=None, description="Chicken", min_price=None, max_price=100000, category=["food"], merchant_name="KFC")]),
         ),
     ]
 
@@ -245,6 +245,6 @@ def get_products(params={}):
 
 if __name__ == '__main__':
     try:
-        app.run(debug=True, port=int(os.getenv('PORT', 8000)))
+        app.run(debug=True, port=int(os.getenv('PORT', 8000)), threaded=False)
     except Exception as e:
         print(f"Error running the server: {e}")
