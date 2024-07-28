@@ -21,7 +21,7 @@ app = Flask(__name__)
 llm = ChatOpenAI(model="gpt-4o")
 
 # Mongo Config
-MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URI)
 db = client["angelhack"]
 products_collection = db["product"]
@@ -208,6 +208,8 @@ def get_chat(session_id):
 
 ### Okay you good
 
+
+
 @app.route('/order/plan', methods=['GET'])
 def plan_order():
     message = request.json.get('message', '')
@@ -257,9 +259,14 @@ def query_products(extracted_params: dict):
         return []
 
 
+@app.route("/")
+def index():
+    return "Hello, World!"
+
 if __name__ == '__main__':
     try:
         app.run(debug=os.getenv('DEBUG', 'False') == 'True',
+                host='0.0.0.0',
                 port=int(os.getenv('PORT', 8000)),
                 threaded=False)
 
