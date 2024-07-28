@@ -35,7 +35,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://frontend:3000"]
     environment:
-      PUBLIC_BACKEND_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     volumes:
       - ./food-planner-recommendation:/app
 
