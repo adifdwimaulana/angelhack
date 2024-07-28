@@ -5,6 +5,8 @@ import uuid
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from flask_cors import CORS
+
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -16,6 +18,14 @@ from tools import tool_example_to_messages
 load_dotenv()
 
 app = Flask(__name__)
+
+cors = CORS(app, resources={
+    r"*": {
+        "origins": ["*"],
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Set your OpenAI API key here
 llm = ChatOpenAI(model="gpt-4o")
@@ -74,6 +84,18 @@ def init_prompt_examples():
             Data(product=[
                 Product(product_name=None, description="Chicken", min_price=None, max_price=100000, category=["food"],
                         merchant_name="KFC")]),
+        ),
+        (
+            "Please made a healthy food under 100000 for the next 5 days",
+            Data(product=[
+                Product(product_name=None, description="healthy", min_price=None, max_price=100000, category=["healthy"],
+                        merchant_name=None)]),
+        ),
+        (
+            "Please made a diet menu under 100000 for the next 5 days",
+            Data(product=[
+                Product(product_name=None, description="diet", min_price=None, max_price=100000, category=["diet"],
+                        merchant_name=None)]),
         ),
     ]
 
@@ -208,9 +230,7 @@ def get_chat(session_id):
 
 ### Okay you good
 
-
-
-@app.route('/order/plan', methods=['GET'])
+@app.route('/order/plan', methods=['POST'])
 def plan_order():
     message = request.json.get('message', '')
     extracted_params = extract_parameters(message)
@@ -237,14 +257,14 @@ def query_products(extracted_params: dict):
             query['price'] = {'$gte': product['min_price']}
         if product['max_price'] is not None:
             query.setdefault('price', {}).update({'$lte': product['max_price']})
-        # if product['category']:
-        #     query['category'] = {'$in': product['category']}
+        if product['category']:
+            query['category'] = {'$in': product['category']}
         if product['product_name']:
             query['product'] = {'$regex': product['product_name'], '$options': 'i'}
-        # if product['merchant_name']:
-        #     query['merchant_name'] = {'$regex': product['merchant_name'], '$options': 'i'}
-        # if product['merchant_area']:
-        #     query['merchant_area'] = {'$regex': product['merchant_area'], '$options': 'i'}
+        if product['merchant_name']:
+            query['merchant_name'] = {'$regex': product['merchant_name'], '$options': 'i'}
+        if product['merchant_area']:
+            query['merchant_area'] = {'$regex': product['merchant_area'], '$options': 'i'}
 
     try:
         products = products_collection.find(query).limit(10).sort('rating', DESCENDING)
