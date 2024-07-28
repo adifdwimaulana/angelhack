@@ -4,7 +4,7 @@
 
 ### Prerequisites
 - Python 3.11
-- MongoDB
+- MongoDB with prepopulated data
 
 ## Steps
 
