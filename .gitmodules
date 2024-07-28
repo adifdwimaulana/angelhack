@@ -1,0 +1,3 @@
+[submodule "food-planner-recommendation"]
+	path = food-planner-recommendation
+	url = https://github.com/huseindra/food-planner-recommendation

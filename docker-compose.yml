@@ -20,10 +20,22 @@ services:
     depends_on:
       - mongo
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://backend:8000"]
     environment:
       PORT: 8000
       MONGO_URI: mongodb://root:example@mongo:27017/
     volumes:
       - .:/app
+
+  frontend:
+    build: ./food-planner-recommendation
+    restart: always
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://frontend:3000"]
+    environment:
+      PUBLIC_BACKEND_URL: http://localhost:8000
+    volumes:
+      - ./food-planner-recommendation:/app
 
